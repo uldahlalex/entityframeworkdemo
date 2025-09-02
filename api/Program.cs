@@ -1,0 +1,44 @@
+using Microsoft.AspNetCore.Builder;
+using Microsoft.Extensions.DependencyInjection;
+using serversidevalidation;
+
+public static class Program
+{
+    public static void Main(string[] args)
+    {
+        var builder = WebApplication.CreateBuilder(args);
+        ConfigureServices(builder.Services);
+        var app = builder.Build();
+        Configure(app);
+    }
+
+    public static void ConfigureServices(IServiceCollection services)
+    {
+        services.AddDbContext<MyDbContext>();
+
+        services.AddScoped<IPetService, PetService>();
+
+        services.AddOpenApiDocument();
+
+        services.AddControllers();
+
+    }
+
+    public static void Configure(WebApplication app)
+    {
+        using (var scope = app.Services.CreateScope())
+        {
+            scope.ServiceProvider.GetRequiredService<MyDbContext>().Database.EnsureCreated();
+        }
+
+        app.UseOpenApi();
+        app.UseSwaggerUi();
+        app.MapControllers();
+
+        app.Run();
+
+    }
+}
+
+
+
