@@ -6,30 +6,40 @@ using serversidevalidation;
 
 namespace tests;
 
-public class Setup
+public class Setup : IDisposable
 {
-    protected IServiceProvider ServiceProvider { get; }
+    private readonly SqliteConnection _connection;
+    private readonly IServiceProvider _serviceProvider;
+    private readonly IServiceScope _testScope;
 
     public Setup()
     {
         var services = new ServiceCollection();
         Program.ConfigureServices(services);
         services.RemoveAll(typeof(MyDbContext));
-        var connection = new SqliteConnection("Filename=:memory:");
-        connection.Open();
-        var contextOptions = new DbContextOptionsBuilder<MyDbContext>()
-            .UseSqlite()
-            .Options;
-
-        //add to DI        
-        ServiceProvider = services.BuildServiceProvider();
+        
+        _connection = new SqliteConnection("Data Source=:memory:");
+        _connection.Open();
+        services.AddDbContext<MyDbContext>(options =>
+            options.UseSqlite(_connection));
+        
+        _serviceProvider = services.BuildServiceProvider();
+        _testScope = _serviceProvider.CreateScope();
+        
+        // Create database schema
+        var context = GetService<MyDbContext>();
+        context.Database.EnsureCreated();
     }
-
-    protected T GetService<T>() where T : notnull
+    
+    public T GetService<T>() where T : notnull
     {
-        using var scope = ServiceProvider.CreateScope();
-        return scope.ServiceProvider.GetRequiredService<T>();
+        return _testScope.ServiceProvider.GetRequiredService<T>();
     }
-
-  
+    
+    public void Dispose()
+    {
+        _testScope?.Dispose();
+        (_serviceProvider as IDisposable)?.Dispose();
+        _connection?.Dispose();
+    }
 }

@@ -1,4 +1,5 @@
 using Microsoft.AspNetCore.Builder;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using serversidevalidation;
 
@@ -14,7 +15,8 @@ public static class Program
 
     public static void ConfigureServices(IServiceCollection services)
     {
-        services.AddDbContext<MyDbContext>();
+        services.AddDbContext<MyDbContext>(options =>
+            options.UseSqlite("Data Source=pets.db"));
 
         services.AddScoped<IPetService, PetService>();
 
